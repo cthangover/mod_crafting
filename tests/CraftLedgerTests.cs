@@ -2,6 +2,7 @@ namespace Cthangover.Mods.Crafting.Tests
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text.Json;
     using Cthangover.Core.Items;
     using Cthangover.Core.Mods.Resolvers;
     using Cthangover.Core.Mods.Testing;
@@ -17,6 +18,25 @@ namespace Cthangover.Mods.Crafting.Tests
             Input = new List<IngredientInfo> { new() { ID = input, Count = 2 } },
             Output = new List<IngredientInfo> { new() { ID = output, Count = 1 } },
         };
+
+        /// <summary>Products must fit before any ingredient is spent; consuming the final source group can free the required cells.</summary>
+        [ModTest("craft/grid_full_output_refuses_and_complete_consumption_frees_cells")]
+        public static void GridCapacity(ModTestContext context)
+        {
+            var ids = Goods();
+            var bag = new Inventory();
+            ModAssert.True(bag.TryConfigureGrid("grid", new InventoryGridData { Width = 1, Height = 1 }, out _));
+            bag.Add(ids[0], 3);
+            var recipe = Recipe(ids[0], ids[1]);
+            var before = JsonSerializer.Serialize(bag.CaptureStorage());
+            ModAssert.False(CraftLedger.CanCraft(bag, recipe));
+            ModAssert.False(CraftLedger.TryCraft(bag, recipe));
+            ModAssert.Equal(before, JsonSerializer.Serialize(bag.CaptureStorage()));
+            recipe.Input[0].Count = 3;
+            ModAssert.True(CraftLedger.TryCraft(bag, recipe));
+            ModAssert.Equal(0, bag.CheckCount(ids[0]));
+            ModAssert.Equal(1, bag.CheckCount(ids[1]));
+        }
 
         [ModTest("craft/batch_spends_inputs_and_adds_products")]
         static void Batch(ModTestContext ctx)

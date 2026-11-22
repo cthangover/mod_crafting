@@ -22,6 +22,8 @@ namespace Cthangover.Mods.Crafting
             var outputs = Totals(recipe.Output, count);
             if (inputs == null || outputs == null)
                 return false;
+            if (inventory is Inventory owner)
+                return owner.CanExchange(inputs, outputs);
             foreach (var pair in inputs)
                 if (inventory.CheckCount(pair.Key) < pair.Value)
                     return false;
@@ -41,6 +43,8 @@ namespace Cthangover.Mods.Crafting
                 return false;
             var inputs = Totals(recipe.Input, count);
             var outputs = Totals(recipe.Output, count);
+            if (inventory is Inventory owner)
+                return owner.TryExchange(inputs, outputs, out _, purpose: "craft");
             foreach (var pair in inputs)
                 inventory.Remove(pair.Key, pair.Value);
             foreach (var pair in outputs)
